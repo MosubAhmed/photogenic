@@ -1,8 +1,10 @@
-FROM centos:latest
+FROM centos:7
 LABEL maintainer="mosubosama123@gmail.com"
-RUN yum install -y httpd \
+RUN yum update -y && \
+    yum install -y httpd \
     zip \
-    unzip
+    unzip && \
+    yum clean all
 ADD https://www.free-css.com/assets/files/free-css-templates/download/page254/photogenic.zip /var/www/html/
 WORKDIR /var/www/html
 RUN unzip photogenic.zip
