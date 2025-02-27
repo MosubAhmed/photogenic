@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: photographia
+  labels:
+    app: photographia
+spec:
+  ports:
+    - port: 8080  # Containers port exposed
+      targetPort: 80  # Pods port
+      nodePort: 31200
+  selector:
+    app: photographia  # Apply this service to any pods which have this label
+  type: LoadBalancer  # Specifies the service type
