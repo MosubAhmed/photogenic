@@ -1,0 +1,71 @@
+pipeline {
+    agent any
+
+    stages {
+        stage("Git checkout") {
+            steps {
+                git branch: 'main', url: 'https://github.com/MosubAhmed/photogenic.git'
+            }
+        }
+        
+        stage('Sending files to Ansible server') {
+            steps {
+                sshagent(['ansible_server']) {
+                    sh '''
+                        rsync -avz -e "ssh -o StrictHostKeyChecking=no" /var/lib/jenkins/workspace/pipline-demo/ ubuntu@172.31.2.186:/home/ubuntu/
+                    '''
+                }
+            }
+        }
+
+        stage("Docker build image") {
+            steps {
+                sshagent(['ansible_server']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ubuntu@172.31.2.186 \
+                        "cd /home/ubuntu && docker build -t $JOB_NAME:v1.$BUILD_ID --no-cache ."
+                    '''
+                }
+            }
+        }
+        
+        stage("Docker image tagging") {
+            steps {
+                sshagent(['ansible_server']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ubuntu@172.31.2.186 \
+                        "docker tag $JOB_NAME:v1.$BUILD_ID mosub/$JOB_NAME:v1.$BUILD_ID && \
+                         docker tag $JOB_NAME:v1.$BUILD_ID mosub/$JOB_NAME:latest"
+                    '''
+                }
+            }
+        }
+        
+        stage("Push Docker images to Docker Hub") {
+            steps {
+                sshagent(['ansible_server']) {
+                     withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'password', usernameVariable: 'username')]) {
+                        sh '''
+                            ssh -o StrictHostKeyChecking=no ubuntu@172.31.2.186 \
+                            "docker login -u ${username} -p ${password} && \
+                             docker image push mosub/$JOB_NAME:v1.$BUILD_ID && \
+                             docker image push mosub/$JOB_NAME:latest && \
+                             docker image rm mosub/$JOB_NAME:v1.$BUILD_ID mosub/$JOB_NAME:latest $JOB_NAME:v1.$BUILD_ID"
+                        '''
+                     }
+                }
+            }
+        }
+        
+        stage("Copy files from Ansible server to Kubernetes server") {
+            steps {
+                sshagent(['kubernetes']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ubuntu@172.31.2.186 \
+                        "cd /home/ubuntu && ansible -m ping node && ansible-playbook ansible.yml"
+                    '''
+                }
+            }
+        }
+    }
+}
