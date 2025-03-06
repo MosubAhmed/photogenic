@@ -9,7 +9,7 @@ photogenic/
 │   ├── ansible.yml      # Main Ansible playbook for deployment
 │   └── hosts            # Inventory file for Ansible
 ├── kubernetes/          # Kubernetes deployment manifests
-│   └── deployment.yml   # Kubernetes deployment configuration
+│   └── deployment.yml   # Kubernetes deployment configuration 
 └── src/                 # Application source code
     └── app.py           # Sample application code
 
